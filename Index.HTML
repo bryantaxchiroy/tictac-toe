@@ -1,0 +1,445 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego de Totito</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #0f172a, #1e3a8a);
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+
+    .contenedor {
+      width: 95%;
+      max-width: 430px;
+      padding: 30px 22px;
+      text-align: center;
+      background: #1e293b;
+      border-radius: 22px;
+      box-shadow: 0 15px 40px #0006;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 38px;
+      color: #38bdf8;
+    }
+
+    .subtitulo {
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #334155;
+      color: white;
+      font-size: 16px;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+
+    .marcador {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .puntos {
+      flex: 1;
+      background: #334155;
+      border-radius: 12px;
+      padding: 12px 5px;
+    }
+
+    .puntos span {
+      display: block;
+      font-size: 28px;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .azul { color: #38bdf8; }
+    .rosa { color: #fb7185; }
+
+    #estado {
+      font-size: 20px;
+      font-weight: bold;
+      margin: 20px 0;
+      min-height: 25px;
+    }
+
+    .tablero {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 20px auto;
+      max-width: 340px;
+    }
+
+    .celda {
+      aspect-ratio: 1;
+      background: #334155;
+      border: 2px solid #475569;
+      border-radius: 15px;
+      font-size: clamp(45px, 12vw, 65px);
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+      color: white;
+    }
+
+    .celda:hover:not(:disabled) {
+      background: #475569;
+      transform: scale(1.04);
+    }
+
+    .celda:disabled {
+      cursor: default;
+    }
+
+    .celda.x { color: #38bdf8; }
+    .celda.o { color: #fb7185; }
+
+    .celda.ganadora {
+      background: #166534;
+      border-color: #4ade80;
+    }
+
+    .botones {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+    }
+
+    .botones button {
+      flex: 1;
+      padding: 14px 8px;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .reiniciar {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+
+    .limpiar {
+      background: #fb7185;
+      color: white;
+    }
+
+    .botones button:hover {
+      filter: brightness(1.15);
+      transform: translateY(-2px);
+    }
+
+    footer {
+      margin-top: 22px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="contenedor">
+    <h1>🎮 TOTITO</h1>
+    <p class="subtitulo">¡Demuestra quién es el mejor!</p>
+
+    <select id="modo">
+      <option value="amigos">👥 Dos jugadores</option>
+      <option value="cpu">🤖 Contra computadora</option>
+    </select>
+
+    <div class="marcador">
+      <div class="puntos">
+        <div class="azul">Jugador X</div>
+        <span id="puntosX">0</span>
+      </div>
+
+      <div class="puntos">
+        <div>Empates</div>
+        <span id="empates">0</span>
+      </div>
+
+      <div class="puntos">
+        <div class="rosa" id="nombreO">Jugador O</div>
+        <span id="puntosO">0</span>
+      </div>
+    </div>
+
+    <div id="estado" aria-live="polite">
+      Turno del jugador X
+    </div>
+
+    <div class="tablero" id="tablero">
+      <button class="celda" data-i="0"></button>
+      <button class="celda" data-i="1"></button>
+      <button class="celda" data-i="2"></button>
+      <button class="celda" data-i="3"></button>
+      <button class="celda" data-i="4"></button>
+      <button class="celda" data-i="5"></button>
+      <button class="celda" data-i="6"></button>
+      <button class="celda" data-i="7"></button>
+      <button class="celda" data-i="8"></button>
+    </div>
+
+    <div class="botones">
+      <button class="reiniciar" id="reiniciar">
+        🔄 Nueva ronda
+      </button>
+      <button class="limpiar" id="limpiar">
+        🗑️ Reiniciar todo
+      </button>
+    </div>
+
+    <footer>Totito • Tres en Raya • HTML, CSS y JS</footer>
+  </main>
+
+  <script>
+    const celdas = document.querySelectorAll(".celda");
+    const estado = document.getElementById("estado");
+    const modo = document.getElementById("modo");
+
+    const puntosX = document.getElementById("puntosX");
+    const puntosO = document.getElementById("puntosO");
+    const empates = document.getElementById("empates");
+
+    let tablero = Array(9).fill("");
+    let turno = "X";
+    let terminado = false;
+    let esperandoCPU = false;
+    let temporizadorCPU = null;
+
+    let victoriasX = 0;
+    let victoriasO = 0;
+    let totalEmpates = 0;
+
+    const combinaciones = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6]
+    ];
+
+    function revisarGanador(datos) {
+      for (const combo of combinaciones) {
+        const [a, b, c] = combo;
+
+        if (
+          datos[a] &&
+          datos[a] === datos[b] &&
+          datos[a] === datos[c]
+        ) {
+          return {
+            ganador: datos[a],
+            combo: combo
+          };
+        }
+      }
+
+      return null;
+    }
+
+    function jugar(indice) {
+      if (
+        terminado ||
+        esperandoCPU ||
+        tablero[indice] !== ""
+      ) return;
+
+      colocarFicha(indice, turno);
+
+      if (terminado) return;
+
+      if (modo.value === "cpu" && turno === "O") {
+        esperandoCPU = true;
+        estado.textContent = "🤖 La computadora piensa...";
+
+        temporizadorCPU = setTimeout(() => {
+          temporizadorCPU = null;
+          esperandoCPU = false;
+
+          if (!terminado && turno === "O") {
+            const movimiento = mejorMovimiento();
+            colocarFicha(movimiento, "O");
+          }
+        }, 450);
+      }
+    }
+
+    function colocarFicha(indice, jugador) {
+      tablero[indice] = jugador;
+
+      celdas[indice].textContent = jugador;
+      celdas[indice].classList.add(jugador.toLowerCase());
+      celdas[indice].disabled = true;
+
+      const resultado = revisarGanador(tablero);
+
+      if (resultado) {
+        terminado = true;
+
+        resultado.combo.forEach(i => {
+          celdas[i].classList.add("ganadora");
+        });
+
+        if (jugador === "X") {
+          victoriasX++;
+          puntosX.textContent = victoriasX;
+        } else {
+          victoriasO++;
+          puntosO.textContent = victoriasO;
+        }
+
+        estado.textContent =
+          "🏆 ¡Ganó el jugador " + jugador + "!";
+
+        bloquearTablero();
+        return;
+      }
+
+      if (tablero.every(celda => celda !== "")) {
+        terminado = true;
+        totalEmpates++;
+        empates.textContent = totalEmpates;
+        estado.textContent = "🤝 ¡Es un empate!";
+        bloquearTablero();
+        return;
+      }
+
+      turno = jugador === "X" ? "O" : "X";
+      estado.textContent = "Turno del jugador " + turno;
+    }
+
+    function bloquearTablero() {
+      celdas.forEach(celda => {
+        celda.disabled = true;
+      });
+    }
+
+    // Inteligencia artificial: busca ganar, bloquear
+    // o elegir la mejor posición disponible.
+    function mejorMovimiento() {
+      const libres = tablero
+        .map((valor, i) => valor === "" ? i : null)
+        .filter(i => i !== null);
+
+      // Intentar ganar.
+      for (const i of libres) {
+        const copia = [...tablero];
+        copia[i] = "O";
+
+        if (revisarGanador(copia)?.ganador === "O") {
+          return i;
+        }
+      }
+
+      // Bloquear al jugador X.
+      for (const i of libres) {
+        const copia = [...tablero];
+        copia[i] = "X";
+
+        if (revisarGanador(copia)?.ganador === "X") {
+          return i;
+        }
+      }
+
+      // Preferir el centro.
+      if (libres.includes(4)) return 4;
+
+      // Preferir las esquinas.
+      const esquinas = [0, 2, 6, 8]
+        .filter(i => libres.includes(i));
+
+      if (esquinas.length > 0) {
+        return esquinas[
+          Math.floor(Math.random() * esquinas.length)
+        ];
+      }
+
+      // Elegir cualquier espacio libre.
+      return libres[
+        Math.floor(Math.random() * libres.length)
+      ];
+    }
+
+    function nuevaRonda() {
+      clearTimeout(temporizadorCPU);
+      temporizadorCPU = null;
+
+      tablero = Array(9).fill("");
+      turno = "X";
+      terminado = false;
+      esperandoCPU = false;
+
+      estado.textContent = "Turno del jugador X";
+
+      celdas.forEach(celda => {
+        celda.textContent = "";
+        celda.disabled = false;
+        celda.className = "celda";
+      });
+    }
+
+    function reiniciarTodo() {
+      nuevaRonda();
+
+      victoriasX = 0;
+      victoriasO = 0;
+      totalEmpates = 0;
+
+      puntosX.textContent = "0";
+      puntosO.textContent = "0";
+      empates.textContent = "0";
+    }
+
+    celdas.forEach(celda => {
+      celda.addEventListener("click", () => {
+        jugar(Number(celda.dataset.i));
+      });
+    });
+
+    document.getElementById("reiniciar")
+      .addEventListener("click", nuevaRonda);
+
+    document.getElementById("limpiar")
+      .addEventListener("click", reiniciarTodo);
+
+    modo.addEventListener("change", () => {
+      document.getElementById("nombreO").textContent =
+        modo.value === "cpu" ? "Computadora" : "Jugador O";
+
+      reiniciarTodo();
+    });
+  </script>
+
+</body>
+</html>
